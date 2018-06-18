@@ -1,8 +1,8 @@
 const DATA_SETS = {
     // 'name': 'url'
-    'master': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/fees_master.xml',
-    'parks': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/parksid.xml',
-    'fees': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/fees.xml',
+    //'master': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/fees_master.xml',
+    //'parks': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/parksid.xml',
+    //'fees': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/fees.xml',
     'subFees': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/subfees.xml'
 };
 
@@ -28,9 +28,16 @@ function fetchDataSet(name, url) {
         var xml = body;
         var parser = new xml2js.Parser();
         parser.parseString(xml, function(error, results) {
-            fs.writeFile(dataSource, results, function(error) {
-                return;
-            });
+            var subfeesData = results['subfees.xml']['I_SUBFEES'];
+
+            for (var dataPointIndex in subfeesData) {
+                var dataPoint = subfeesData[dataPointIndex];
+                for (var key in dataPoint) {
+                    if (dataPoint.hasOwnProperty(key)) {
+                    console.log('key:' + key + '; value: ' + dataPoint[key]);
+                    }
+                }
+            }
         })
     });
 }
@@ -39,5 +46,5 @@ for (name in DATA_SETS) {
     var url = DATA_SETS[name];
 
     var dataSet = fetchDataSet(name, url);
-    var data = parseDataSet(name, dataSet);
+    //var data = parseDataSet(name, dataSet);
 }
