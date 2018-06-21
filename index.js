@@ -8,10 +8,29 @@ const OPERATIONS = {
 
 const DATA_SETS = {
     // 'name': 'url'
-    'master': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/fees_master.xml',
+    'master': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/fees_master.xmla',
     'parks': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/parksid.xml',
     'fees': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/fees.xml',
-    'subFees': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/subfees.xml'
+    'subfees': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/subfees.xml'
+};
+
+const EMPTY_ATTRIBUTES = {
+    'master': [
+        'FEESMASTER.xml',
+        'I_MAIN'
+    ],
+    'parks': [
+        'pRK.xml',
+        'I_PRKS'
+    ],
+    'fees': [
+        'fees.xml',
+        'I_FEES'
+    ],
+    'subfees': [
+        'subfees.xml',
+        'I_SUBFEES'
+    ]
 };
 
 const MANIPULATIONS = {
@@ -67,6 +86,8 @@ var request = require('request');
 var xml2js = require('xml2js');
 
 function fetchDataSet(name, url) {
+    var dataSet = {};
+
     console.log('Fetching \'' + name + '\': ' + url);
     request(url, function(error, response, body) {
         if (error) {
@@ -74,7 +95,7 @@ function fetchDataSet(name, url) {
             return;
         }
 
-        var url = response.request.href;
+        //var url = response.request.href;
 
         if (response.statusCode != 200) {
             console.log('HTTP Error ' + response.statusCode + ' (' + response.statusMessage + ')' + ': ' + url);
@@ -84,31 +105,36 @@ function fetchDataSet(name, url) {
         var xml = body;
         var parser = new xml2js.Parser();
         parser.parseString(xml, function(error, results) {
-            var subfeesData = results['subfees.xml']['I_SUBFEES'];
-
-            for (var dataPointIndex in subfeesData) {
-                var dataPoint = subfeesData[dataPointIndex];
-                for (var key in dataPoint) {
-                    if (dataPoint.hasOwnProperty(key)) {
-                    console.log('key:' + key + '; value: ' + dataPoint[key]);
-                    }
-                }
+            if (error) {
+                console.log('Error: ' + error);
+                return;
             }
+
+            dataSet = results[EMPTY_ATTRIBUTES[name][0]][EMPTY_ATTRIBUTES[name][1]];
+            console.log(name + ' data set has ' + Object.keys(dataSet).length + ' records.');
         })
     });
+
+    return dataSet;
 }
 
-/*for (name in DATA_SETS) {
+
+var dataSets = {};
+for (name in DATA_SETS) {
     var url = DATA_SETS[name];
 
-    var dataSet = fetchDataSet(name, url);
-    //var data = parseDataSet(name, dataSet);
+    dataSets[name] = await fetchDataSet(name, url);
+}
+
+/*for (var dataSet in dataSets) {
+    console.log('Data set: ' + dataSet);
+    console.log('Data set records: ' + Object.keys(dataSets[dataSet]).length);
 }*/
 
-console.log(OPERATIONS.KEEP);
+/*console.log(OPERATIONS.KEEP);
 for (dataSet in MANIPULATIONS) {
     console.log(dataSet);
     for (field in MANIPULATIONS[dataSet]) {
         console.log(field + ': ' + MANIPULATIONS[dataSet][field]);
     }
-}
+}*/
