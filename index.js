@@ -66,7 +66,6 @@ const SUBFEEID = 'ZSUBFEEID';
 var fs = require('fs');
 var request = require('request');
 var xml2js = require('xml2js');
-var json2csv = require('json2csv');
 
 function fetchDataSet(name, url) {
     console.log('Fetching \'' + name + '\': ' + url);
@@ -96,14 +95,6 @@ function fetchDataSet(name, url) {
                     }
                 }
             }
-
-            var json2csvParser = new json2csv.Parser();
-            var csv = json2csvParser.parse(subfeesData);
-            fs.writeFile(name + '.csv', csv, function(error) {
-                if (error) {
-                    console.log('Unable to write to file: ' + error);
-                }
-            });
         })
     });
 }
