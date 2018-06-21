@@ -63,7 +63,6 @@ const PARKID = 'ZPARK_ID';
 const FEEID = 'ZFEE_ID';
 const SUBFEEID = 'ZSUBFEEID';
 
-var fs = require('fs');
 var request = require('request');
 var xml2js = require('xml2js');
 
