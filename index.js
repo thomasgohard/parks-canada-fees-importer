@@ -8,7 +8,7 @@ const OPERATIONS = {
 
 const DATA_SETS = {
     // 'name': 'url'
-    'master': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/fees_master.xmla',
+    'master': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/fees_master.xml',
     'parks': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/parksid.xml',
     'fees': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/fees.xml',
     'subfees': 'http://www.pc.gc.ca/apps/tarifs-fees/XML/subfees.xml'
@@ -82,14 +82,27 @@ const PARKID = 'ZPARK_ID';
 const FEEID = 'ZFEE_ID';
 const SUBFEEID = 'ZSUBFEEID';
 
-var request = require('request');
-var xml2js = require('xml2js');
+var request = require('request-promise-native');
+var xml2js = require('xml2js-es6-promise');
 
-function fetchDataSet(name, url) {
-    var dataSet = {};
+function getURL(url) {
+    return request(url);
+}
 
+function convertXMLToJS(xml) {
+    return xml2js(xml);
+}
+
+async function getDataSet(name, url) {
     console.log('Fetching \'' + name + '\': ' + url);
-    request(url, function(error, response, body) {
+    var dataSet = await getURL(url);
+    dataSet = await convertXMLToJS(dataSet);
+    dataSet = dataSet[EMPTY_ATTRIBUTES[name][0]][EMPTY_ATTRIBUTES[name][1]];
+
+    //console.log('Data set: ' + name);
+    //console.log('Data set records: ' + Object.keys(dataSet).length);
+
+    /*request(url, function(error, response, body) {
         if (error) {
             console.log('Error: ' + error);
             return;
@@ -113,7 +126,7 @@ function fetchDataSet(name, url) {
             dataSet = results[EMPTY_ATTRIBUTES[name][0]][EMPTY_ATTRIBUTES[name][1]];
             console.log(name + ' data set has ' + Object.keys(dataSet).length + ' records.');
         })
-    });
+    });*/
 
     return dataSet;
 }
@@ -123,8 +136,17 @@ var dataSets = {};
 for (name in DATA_SETS) {
     var url = DATA_SETS[name];
 
-    dataSets[name] = await fetchDataSet(name, url);
+    dataSets[name] = getDataSet(name, url);
 }
+
+Promise.all(dataSets).then(
+    function(results) {
+        console.log(results);
+    },
+    function(error) {
+        console.log(error);
+    }
+);
 
 /*for (var dataSet in dataSets) {
     console.log('Data set: ' + dataSet);

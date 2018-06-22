@@ -22,6 +22,8 @@
   "homepage": "https://github.com/thomasgohard/parks-canada-fees-importer#readme",
   "dependencies": {
     "request": "^2.87.0",
-    "xml2js": "^0.4.19"
+    "request-promise-native": "^1.0.5",
+    "xml2js": "^0.4.19",
+    "xml2js-es6-promise": "^1.1.1"
   }
 }
