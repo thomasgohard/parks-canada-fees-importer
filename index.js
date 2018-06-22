@@ -52,35 +52,29 @@ const MANIPULATIONS = {
         'COMM_ENG_URL': OPERATIONS.DELETE,
         'COMM_FRE_URL': OPERATIONS.DELETE,
         'NEWORREVISED': OPERATIONS.DELETE
-    },
-    'parks': {
-        'ZPARK_ID': OPERATIONS.KEEP,
-        'UP_ENG_FULL': OPERATIONS.KEEP,
-        'UP_FRE_FULL': OPERATIONS.DELETE,
-        'LOW_ENG_FULL': OPERATIONS.DELETE,
-        'LOW_FRE_FULL': OPERATIONS.DELETE,
-        'LOW_ENG': OPERATIONS.DELETE,
-        'LOW_FRE': OPERATIONS.DELETE,
-        'UP_ALPHA_FR_FULL': OPERATIONS.DELETE,
-        'LOW_FR_NAME_1ST': OPERATIONS.DELETE,
-        'UP_NO_EN_FULL': OPERATIONS.DELETE,
-        'UP_NO_FR_FULL': OPERATIONS.DELETE
-    },
-    'fees': {
-        'ZFEE_ID': OPERATIONS.KEEP,
-        'EN_DESCRIPTION': OPERATIONS.KEEP,
-        'FR_DESCRIPTION': OPERATIONS.DELETE
-    },
-    'subfees': {
-        'ZFEE_ID': OPERATIONS.KEEP,
-        'EN_DESCRIPTION': OPERATIONS.KEEP,
-        'FR_DESCRIPTION': OPERATIONS.DELETE
     }
 };
 
-const PARKID = 'ZPARK_ID';
-const FEEID = 'ZFEE_ID';
-const SUBFEEID = 'ZSUBFEEID';
+const DATA_SET_TRANSFORMATIONS = {
+    'parks': {
+        'id': 'ZPARK_ID',
+        'description': 'LOW_ENG_FULL'
+    },
+    'fees': {
+        'id': 'ZFEE_ID',
+        'description': 'EN_DESCRIPTION'
+    },
+    'subfees': {
+        'id': 'ZSUBFEE_ID',
+        'description': 'EN_DESCRIPTION'
+    }
+};
+
+const DATA_SUBSTITUTIONS = {
+    'ZPARK_ID': 'parks',
+    'ZFEE_ID': 'fees',
+    'ZSUBFEE_ID': 'subfees'
+};
 
 var request = require('request-promise-native');
 var xml2js = require('xml2js-es6-promise');
@@ -114,17 +108,44 @@ for (name in DATA_SETS) {
 
 Promise.all(dataSets).then(
     function(results) {
-        console.log(results);
+        dataSets = {};
+        for (var dataSet of results) {
+            var name = Object.keys(dataSet)[0];
+            var data = dataSet[name];
+            dataSets[name] = data;
+        }
+        
+        var data_sets_to_transform = Object.keys(DATA_SET_TRANSFORMATIONS);
+        for (var name of data_sets_to_transform) {
+            idKey = DATA_SET_TRANSFORMATIONS[name]['id'];
+            descriptionKey = DATA_SET_TRANSFORMATIONS[name]['description'];
+
+            var dataSet = {}
+            for (var record of dataSets[name]) {
+                var id = record[idKey];
+                var description = record[descriptionKey];
+
+                dataSet[id] = description;
+            }
+            dataSets[name] = dataSet;
+        }
+
+        for (var record of dataSets['master']) {
+            for (var key in record) {
+                var sourceSet = DATA_SUBSTITUTIONS[key]
+                if (sourceSet) {
+                    var description = dataSets[sourceSet][record[key]];
+                    record[key] = description;
+                }
+            }
+        }
+
+        // delete/rename colums from master as necessary
     },
     function(error) {
         console.log(error);
     }
 );
-
-/*for (var dataSet in dataSets) {
-    console.log('Data set: ' + dataSet);
-    console.log('Data set records: ' + Object.keys(dataSets[dataSet]).length);
-}*/
 
 /*console.log(OPERATIONS.KEEP);
 for (dataSet in MANIPULATIONS) {
