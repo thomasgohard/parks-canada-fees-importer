@@ -90,53 +90,26 @@ function getURL(url) {
 }
 
 function convertXMLToJS(xml) {
-    return xml2js(xml);
+    return xml2js(xml, {explicitArray: false});
 }
 
 async function getDataSet(name, url) {
     console.log('Fetching \'' + name + '\': ' + url);
+
     var dataSet = await getURL(url);
     dataSet = await convertXMLToJS(dataSet);
-    dataSet = dataSet[EMPTY_ATTRIBUTES[name][0]][EMPTY_ATTRIBUTES[name][1]];
-
-    //console.log('Data set: ' + name);
-    //console.log('Data set records: ' + Object.keys(dataSet).length);
-
-    /*request(url, function(error, response, body) {
-        if (error) {
-            console.log('Error: ' + error);
-            return;
-        }
-
-        //var url = response.request.href;
-
-        if (response.statusCode != 200) {
-            console.log('HTTP Error ' + response.statusCode + ' (' + response.statusMessage + ')' + ': ' + url);
-            return;
-        }
-
-        var xml = body;
-        var parser = new xml2js.Parser();
-        parser.parseString(xml, function(error, results) {
-            if (error) {
-                console.log('Error: ' + error);
-                return;
-            }
-
-            dataSet = results[EMPTY_ATTRIBUTES[name][0]][EMPTY_ATTRIBUTES[name][1]];
-            console.log(name + ' data set has ' + Object.keys(dataSet).length + ' records.');
-        })
-    });*/
+    dataSet = dataSet[EMPTY_ATTRIBUTES[name][0]];
+    dataSet[name] = dataSet[EMPTY_ATTRIBUTES[name][1]];
+    delete dataSet[EMPTY_ATTRIBUTES[name][1]];
 
     return dataSet;
 }
 
-
-var dataSets = {};
+var dataSets = [];
 for (name in DATA_SETS) {
     var url = DATA_SETS[name];
-
-    dataSets[name] = getDataSet(name, url);
+    
+    dataSets.push(getDataSet(name, url));
 }
 
 Promise.all(dataSets).then(
