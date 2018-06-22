@@ -1,8 +1,7 @@
 const OPERATIONS = {
     DELETE: 'delete',
-    KEEP: 'keep',
     RENAME: function(name) {
-        return 'rename(' + name + ')';
+        return name;
     }
 };
 
@@ -34,25 +33,23 @@ const EMPTY_ATTRIBUTES = {
 };
 
 const MANIPULATIONS = {
-    'master': {
-        'PRICE_WITH_GST_EN': OPERATIONS.RENAME('Fee'),
-        'PRICE_WITH_GST_FR': OPERATIONS.DELETE,
-        'ZMASTER_ID': OPERATIONS.DELETE,
-        'ZPARK_ID': OPERATIONS.RENAME('Park name'),
-        'ZFEE_ID': OPERATIONS.RENAME('Fee type'),
-        'ZSUBFEE_ID': OPERATIONS.RENAME('Fee class'),
-        'FEEDESC_ENG': OPERATIONS.RENAME('Fee description'),
-        'FEEDESC_FRE': OPERATIONS.DELETE,
-        'NATIONAL_OR_LOCAL': OPERATIONS.DELETE,
-        'TRAVEL_TRADE': OPERATIONS.DELETE,
-        'PURPOSE': OPERATIONS.DELETE,
-        'CLASS': OPERATIONS.DELETE,
-        'COMM_ENG': OPERATIONS.DELETE,
-        'COMM_FRE': OPERATIONS.DELETE,
-        'COMM_ENG_URL': OPERATIONS.DELETE,
-        'COMM_FRE_URL': OPERATIONS.DELETE,
-        'NEWORREVISED': OPERATIONS.DELETE
-    }
+    'PRICE_WITH_GST_EN': OPERATIONS.RENAME('Fee'),
+    'PRICE_WITH_GST_FR': OPERATIONS.DELETE,
+    'ZMASTER_ID': OPERATIONS.DELETE,
+    'ZPARK_ID': OPERATIONS.RENAME('Park name'),
+    'ZFEE_ID': OPERATIONS.RENAME('Fee type'),
+    'ZSUBFEE_ID': OPERATIONS.RENAME('Fee class'),
+    'FEEDESC_ENG': OPERATIONS.RENAME('Fee description'),
+    'FEEDESC_FRE': OPERATIONS.DELETE,
+    'NATIONAL_OR_LOCAL': OPERATIONS.DELETE,
+    'TRAVEL_TRADE': OPERATIONS.DELETE,
+    'PURPOSE': OPERATIONS.DELETE,
+    'CLASS': OPERATIONS.DELETE,
+    'COMM_ENG': OPERATIONS.DELETE,
+    'COMM_FRE': OPERATIONS.DELETE,
+    'COMM_ENG_URL': OPERATIONS.DELETE,
+    'COMM_FRE_URL': OPERATIONS.DELETE,
+    'NEWORREVISED': OPERATIONS.DELETE
 };
 
 const DATA_SET_TRANSFORMATIONS = {
@@ -137,10 +134,26 @@ Promise.all(dataSets).then(
                     var description = dataSets[sourceSet][record[key]];
                     record[key] = description;
                 }
+
+                var manipulation = MANIPULATIONS[key];
+                if (manipulation) {
+                    if (manipulation == OPERATIONS.DELETE) {
+                        delete record[key];
+                    } else {    // rename
+                        record[manipulation] = record[key];
+                        delete record[key];
+                        key = manipulation;
+                    }
+                }
+
+                // add counter
+                // convert record into PutRequest
+                // add PutRequest to array
+                // if counter == 25
+                //  writeBatch
+                //  reset counter
             }
         }
-
-        // delete/rename colums from master as necessary
     },
     function(error) {
         console.log(error);
