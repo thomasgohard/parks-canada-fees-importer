@@ -1,4 +1,55 @@
 const TABLE_NAME = "parks-canada-fees-en";
+const TABLE_DEFINITION = {
+    AttributeDefinitions: [
+        {
+            AttributeName: 'Park name',
+            AttributeType: 'S'
+        },
+        {
+            AttributeName: 'Fee description',
+            AttributeType: 'S'
+        },
+        {
+            AttributeName: 'Fee type',
+            AttributeType: 'S'
+        },
+        {
+            AttributeName: 'Fee class',
+            AttributeType: 'S'
+        },
+        {
+            AttributeName: 'Fee',
+            AttributeType: 'S'
+        }
+    ],
+    KeySchema: [
+        {
+            AttributeName: 'Park name',
+            KeyType: 'HASH'
+        },
+        {
+            AttributeName: 'Fee description',
+            KeyType: 'RANGE'
+        },
+        {
+            AttributeName: 'Fee type',
+            KeyType: 'RANGE'
+        },
+        {
+            AttributeName: 'Fee class',
+            KeyType: 'RANGE'
+        },
+        {
+            AttributeName: 'Fee',
+            KeyType: 'RANGE'
+        }
+    ],
+    ProvisionedThroughput: {
+        ReadCapacityUnits: 1,
+        WriteCapacityUnits: 1
+    },
+    TableName: 'parks-canada-fees-en'
+};
 
 const DDB_BATCH_LIMIT = 25;
 const DDB_API_VERSION = '2012-08-10';
@@ -120,6 +171,22 @@ async function ddb_table_exists(ddb, tableName) {
     return tableExists;
 }
 
+function deleteTable(ddb, tableName) {
+    return ddb.deleteTable({TableName: tableName}).promise();
+}
+
+async function ddb_delete_table(ddb, tableName) {
+    await deleteTable(ddb, tableName);
+}
+
+function createTable(ddb, tableDefinition) {
+    ddb.createTable(tableDefinition).promise();
+}
+
+async function ddb_create_table(ddb, tableDefinition) {
+    await createTable(ddb, tableDefinition);
+}
+
 var dataSets = [];
 for (name in DATA_SETS) {
     var url = DATA_SETS[name];
@@ -159,8 +226,17 @@ Promise.all(dataSets).then(
         };
         var ddb = new aws.DynamoDB({apiVersion: DDB_API_VERSION});
         // if table exists, delete it
+        // create table
         // wait for table to have status of 'active' before writing to it
-        console.log('Table exists: ' + await ddb_table_exists(ddb, TABLE_NAME));
+        //console.log('Table exists: ' + await ddb_table_exists(ddb, TABLE_NAME));
+        if (await ddb_table_exists(ddb, TABLE_DEFINITION.TableName)) {
+            console.log('Delete the table ' + TABLE_DEFINITION.TableName);
+            await ddb_delete_table(ddb, TABLE_DEFINITION.TableName);
+            console.log('Table deleted');
+        }
+        console.log('Creating table ' + TABLE_DEFINITION.TableName);
+        await ddb_create_table(ddb, TABLE_DEFINITION);
+        console.log(TABLE_DEFINITION.TableName + ' created');
         for (var record of dataSets['master']) {
             for (var key in record) {
                 var sourceSet = DATA_SUBSTITUTIONS[key]
