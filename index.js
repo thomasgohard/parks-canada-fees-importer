@@ -1,3 +1,9 @@
+const TABLE_NAME = "parks-canada-fees-en";
+
+const DDB_BATCH_LIMIT = 25;
+const DDB_API_VERSION = '2012-08-10';
+const DDB_LIST_TABLE_LIMIT = 100;
+
 const OPERATIONS = {
     DELETE: 'delete',
     RENAME: function(name) {
@@ -75,6 +81,9 @@ const DATA_SUBSTITUTIONS = {
 
 var request = require('request-promise-native');
 var xml2js = require('xml2js-es6-promise');
+var aws = require('aws-sdk');
+
+aws.config.update({region: 'us-east-1'});
 
 function getURL(url) {
     return request(url);
@@ -96,6 +105,21 @@ async function getDataSet(name, url) {
     return dataSet;
 }
 
+function listTables(ddb, tableName) {
+    return ddb.listTables({}).promise();
+}
+
+async function ddb_table_exists(ddb, tableName) {
+    var tableExists = false;
+    var tableNames = await listTables(ddb, tableName);
+    
+    if (tableNames.TableNames.includes(tableName)) {
+        tableExists = true;
+    }
+
+    return tableExists;
+}
+
 var dataSets = [];
 for (name in DATA_SETS) {
     var url = DATA_SETS[name];
@@ -104,7 +128,7 @@ for (name in DATA_SETS) {
 }
 
 Promise.all(dataSets).then(
-    function(results) {
+    async function(results) {
         dataSets = {};
         for (var dataSet of results) {
             var name = Object.keys(dataSet)[0];
@@ -127,6 +151,16 @@ Promise.all(dataSets).then(
             dataSets[name] = dataSet;
         }
 
+        var recordCounter = 0;
+        var params = {
+            RequestItems: {
+                TABLE_NAME: []
+            }
+        };
+        var ddb = new aws.DynamoDB({apiVersion: DDB_API_VERSION});
+        // if table exists, delete it
+        // wait for table to have status of 'active' before writing to it
+        console.log('Table exists: ' + await ddb_table_exists(ddb, TABLE_NAME));
         for (var record of dataSets['master']) {
             for (var key in record) {
                 var sourceSet = DATA_SUBSTITUTIONS[key]
@@ -145,11 +179,12 @@ Promise.all(dataSets).then(
                         key = manipulation;
                     }
                 }
+            }
 
-                // add counter
-                // convert record into PutRequest
-                // add PutRequest to array
-                // if counter == 25
+            ++recordCounter;
+            // convert record into PutRequest
+            // add PutRequest to array
+            if (recordCounter % DDB_BATCH_LIMIT == 0) {
                 //  writeBatch
                 //  reset counter
             }
