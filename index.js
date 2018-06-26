@@ -4,44 +4,12 @@ const TABLE_DEFINITION = {
         {
             AttributeName: 'Park name',
             AttributeType: 'S'
-        },
-        {
-            AttributeName: 'Fee description',
-            AttributeType: 'S'
-        },
-        {
-            AttributeName: 'Fee type',
-            AttributeType: 'S'
-        },
-        {
-            AttributeName: 'Fee class',
-            AttributeType: 'S'
-        },
-        {
-            AttributeName: 'Fee',
-            AttributeType: 'S'
         }
     ],
     KeySchema: [
         {
             AttributeName: 'Park name',
             KeyType: 'HASH'
-        },
-        {
-            AttributeName: 'Fee description',
-            KeyType: 'RANGE'
-        },
-        {
-            AttributeName: 'Fee type',
-            KeyType: 'RANGE'
-        },
-        {
-            AttributeName: 'Fee class',
-            KeyType: 'RANGE'
-        },
-        {
-            AttributeName: 'Fee',
-            KeyType: 'RANGE'
         }
     ],
     ProvisionedThroughput: {
@@ -219,12 +187,11 @@ Promise.all(dataSets).then(
         }
 
         var recordCounter = 0;
-        var params = {
-            RequestItems: {
-                TABLE_NAME: []
-            }
-        };
+        var params = {};
+        params.RequestItems = {};
+        params.RequestItems[TABLE_DEFINITION.TableName] = [];
         var ddb = new aws.DynamoDB({apiVersion: DDB_API_VERSION});
+        var documentClient = new aws.DynamoDB.DocumentClient();
         // if table exists, delete it
         // create table
         // wait for table to have status of 'active' before writing to it
@@ -232,11 +199,17 @@ Promise.all(dataSets).then(
         if (await ddb_table_exists(ddb, TABLE_DEFINITION.TableName)) {
             console.log('Delete the table ' + TABLE_DEFINITION.TableName);
             await ddb_delete_table(ddb, TABLE_DEFINITION.TableName);
+            // Note: Doesn't actually await for table to be deleted
             console.log('Table deleted');
         }
+        // Note: Need to check that table actually doesn't exist
         console.log('Creating table ' + TABLE_DEFINITION.TableName);
         await ddb_create_table(ddb, TABLE_DEFINITION);
         console.log(TABLE_DEFINITION.TableName + ' created');
+
+        var currentKey;
+        var dataList = [];
+        var putRequest = {};
         for (var record of dataSets['master']) {
             for (var key in record) {
                 var sourceSet = DATA_SUBSTITUTIONS[key]
@@ -257,14 +230,74 @@ Promise.all(dataSets).then(
                 }
             }
 
-            ++recordCounter;
-            // convert record into PutRequest
-            // add PutRequest to array
-            if (recordCounter % DDB_BATCH_LIMIT == 0) {
-                //  writeBatch
-                //  reset counter
+            // Assumes 'master' is sorted by park name
+            var key;
+            var data = {};
+            for (var property in record) {
+                if (property == TABLE_DEFINITION.KeySchema[0].AttributeName) { // primary key
+                    key = record[property];
+
+                    if (key != currentKey) {
+                        if (currentKey) {
+                            putRequest = {
+                                PutRequest: {
+                                    Item: {}
+                                }
+                            };
+                            putRequest.PutRequest.Item['Park name'] = currentKey;
+                            putRequest.PutRequest.Item['Fees list'] = dataList;
+
+                            console.log('PutRequest');
+                            console.log('Park name: ' + currentKey);
+                            console.log('Fees list: ' + dataList.length);
+
+                            params.RequestItems[TABLE_DEFINITION.TableName].push(putRequest);
+                            console.log('Number of records (' + recordCounter + '): ' + params.RequestItems[TABLE_DEFINITION.TableName].length);
+
+                            ++recordCounter
+                            if (recordCounter % DDB_BATCH_LIMIT == 0) {
+                                documentClient.batchWrite(params, function(error, data) {
+                                    if (error) {
+                                        console.log('Batch write failed.');
+                                    }
+                                });
+                                recordCounter = 0;
+                                params.RequestItems[TABLE_DEFINITION.TableName] = [];
+                            }
+                        }
+                        currentKey = key;
+                        dataList = [];
+                    }
+
+                    //console.log('Primary key: ' + key + '(current key: ' + currentKey + ')');
+                } else {
+                    data[property] = record[property];
+                    //console.log(property + ' property: ' + data[property]);
+                }
             }
+            dataList.push(data);
         }
+
+        putRequest = {
+            PutRequest: {
+                Item: {}
+            }
+        };
+        putRequest.PutRequest.Item['Park name'] = currentKey;
+        putRequest.PutRequest.Item['Fees list'] = dataList;
+
+        console.log('PutRequest');
+        console.log('Park name: ' + currentKey);
+        console.log('Fees list: ' + dataList.length);
+
+        params.RequestItems[TABLE_DEFINITION.TableName].push(putRequest);
+        console.log('Number of records (' + recordCounter + '): ' + params.RequestItems[TABLE_DEFINITION.TableName].length);
+
+        documentClient.batchWrite(params, function(error, data) {
+            if (error) {
+                console.log('Batch write failed.');
+            }
+        });
     },
     function(error) {
         console.log(error);
