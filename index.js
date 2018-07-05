@@ -2,13 +2,13 @@ const TABLE_NAME = "parks-canada-fees-en";
 const TABLE_DEFINITION = {
     AttributeDefinitions: [
         {
-            AttributeName: 'Park name',
+            AttributeName: 'parknamekey',
             AttributeType: 'S'
         }
     ],
     KeySchema: [
         {
-            AttributeName: 'Park name',
+            AttributeName: 'parknamekey',
             KeyType: 'HASH'
         }
     ],
@@ -234,7 +234,8 @@ Promise.all(dataSets).then(
             var key;
             var data = {};
             for (var property in record) {
-                if (property == TABLE_DEFINITION.KeySchema[0].AttributeName) { // primary key
+                //if (property == TABLE_DEFINITION.KeySchema[0].AttributeName) { // primary key
+                if (property == 'Park name') { // primary key
                     key = record[property];
 
                     if (key != currentKey) {
@@ -244,10 +245,12 @@ Promise.all(dataSets).then(
                                     Item: {}
                                 }
                             };
+                            putRequest.PutRequest.Item['parknamekey'] = currentKey.toLowerCase();
                             putRequest.PutRequest.Item['Park name'] = currentKey;
                             putRequest.PutRequest.Item['Fees list'] = dataList;
 
                             console.log('PutRequest');
+                            console.log('parknamekey: ' + currentKey.toLowerCase());
                             console.log('Park name: ' + currentKey);
                             console.log('Fees list: ' + dataList.length);
 
@@ -283,10 +286,12 @@ Promise.all(dataSets).then(
                 Item: {}
             }
         };
+        putRequest.PutRequest.Item['parknamekey'] = currentKey.toLowerCase();
         putRequest.PutRequest.Item['Park name'] = currentKey;
         putRequest.PutRequest.Item['Fees list'] = dataList;
 
         console.log('PutRequest');
+        console.log('parknamekey: ' + currentKey.toLowerCase());
         console.log('Park name: ' + currentKey);
         console.log('Fees list: ' + dataList.length);
 
