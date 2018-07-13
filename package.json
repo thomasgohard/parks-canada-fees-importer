@@ -1,0 +1,30 @@
+{
+  "name": "parks-canada-fees-importer",
+  "version": "0.1.0",
+  "description": "Imports the Parks Canada fees data into a database.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thomasgohard/parks-canada-fees-importer.git"
+  },
+  "keywords": [
+    "parks canada",
+    "fees"
+  ],
+  "author": "Thomas Gohard",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/thomasgohard/parks-canada-fees-importer/issues"
+  },
+  "homepage": "https://github.com/thomasgohard/parks-canada-fees-importer#readme",
+  "dependencies": {
+    "aws-sdk": "^2.263.1",
+    "request": "^2.87.0",
+    "request-promise-native": "^1.0.5",
+    "xml2js": "^0.4.19",
+    "xml2js-es6-promise": "^1.1.1"
+  }
+}
